@@ -38,6 +38,10 @@ struct SmoothieRow: View {
             }
             
             Spacer(minLength: 0)
+
+            if model.favoriteSmoothieIDs.contains(smoothie.id) {
+                Text("♥️")
+            }
         }
         .font(.subheadline)
         .accessibilityElement(children: .combine)
