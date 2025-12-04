@@ -6,6 +6,7 @@ A model that represents a smoothie — including its descriptive information and
 */
 
 import Foundation
+import CoreTransferable
 
 struct Smoothie: Identifiable, Codable {
     var id: String
@@ -257,5 +258,12 @@ enum SmoothieArrayBuilder {
 
     static func buildBlock(_ smoothies: [Smoothie]...) -> [Smoothie] {
         return smoothies.flatMap { $0 }
+    }
+}
+
+
+extension Smoothie: Transferable {
+    static var transferRepresentation: some TransferRepresentation {
+        ProxyRepresentation(exporting: \.image)
     }
 }

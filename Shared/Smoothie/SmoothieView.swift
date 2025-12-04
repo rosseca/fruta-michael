@@ -1,55 +1,57 @@
 /*
-See LICENSE folder for this sample’s licensing information.
+ See LICENSE folder for this sample’s licensing information.
 
-Abstract:
-The smoothie detail view that offers the smoothie for sale and lists its ingredients.
-*/
+ Abstract:
+ The smoothie detail view that offers the smoothie for sale and lists its ingredients.
+ */
 
 import SwiftUI
 
 #if APPCLIP
-import StoreKit
+    import StoreKit
 #endif
 
 struct SmoothieView: View {
     var smoothie: Smoothie
-    
+
     @State private var presentingOrderPlacedSheet = false
     @State private var presentingSecurityAlert = false
     @EnvironmentObject private var model: Model
     @Environment(\.colorScheme) private var colorScheme
-    
+
     @State private var selectedIngredientID: Ingredient.ID?
     @State private var topmostIngredientID: Ingredient.ID?
     @Namespace private var namespace
-    
+
     #if APPCLIP
-    @State private var presentingAppStoreOverlay = false
+        @State private var presentingAppStoreOverlay = false
     #endif
-    
+
     var body: some View {
         container
+        #if os(macOS)
+        .frame(minWidth: 500, idealWidth: 700, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity)
+        #endif
+        .background()
+        .navigationTitle(smoothie.title)
+        .toolbar {
+            ShareLink(item: smoothie, preview: SharePreview(
+                smoothie.title, image: smoothie.image))
+            SmoothieFavoriteButton()
+                .environmentObject(model)
+        }
+        .sheet(isPresented: $presentingOrderPlacedSheet) {
+            OrderPlacedView()
             #if os(macOS)
-            .frame(minWidth: 500, idealWidth: 700, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity)
-            #endif
-            .background()
-            .navigationTitle(smoothie.title)
-            .toolbar {
-                SmoothieFavoriteButton()
-                    .environmentObject(model)
-            }
-            .sheet(isPresented: $presentingOrderPlacedSheet) {
-                OrderPlacedView()
-                    #if os(macOS)
-                    .clipped()
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button(action: { presentingOrderPlacedSheet = false }) {
-                                Text("Done", comment: "Button to dismiss the confirmation sheet after placing an order")
-                            }
+                .clipped()
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(action: { presentingOrderPlacedSheet = false }) {
+                            Text("Done", comment: "Button to dismiss the confirmation sheet after placing an order")
                         }
                     }
-                    #else
+                }
+            #else
                     .overlay(alignment: .topTrailing) {
                         Button {
                             presentingOrderPlacedSheet = false
@@ -61,28 +63,28 @@ struct SmoothieView: View {
                         .keyboardShortcut(.defaultAction)
                         .padding()
                     }
-                    #endif
-            }
-            .alert(isPresented: $presentingSecurityAlert) {
-                Alert(
-                    title: Text("Payments Disabled",
-                                comment: "Title of alert dialog when payments are disabled"),
-                    message: Text("The Fruta QR code was scanned too far from the shop, payments are disabled for your protection.",
-                                  comment: "Explanatory text of alert dialog when payments are disabled"),
-                    dismissButton: .default(Text("OK",
-                                                 comment: "OK button of alert dialog when payments are disabled"))
-                )
-            }
+            #endif
+        }
+        .alert(isPresented: $presentingSecurityAlert) {
+            Alert(
+                title: Text("Payments Disabled",
+                            comment: "Title of alert dialog when payments are disabled"),
+                message: Text("The Fruta QR code was scanned too far from the shop, payments are disabled for your protection.",
+                              comment: "Explanatory text of alert dialog when payments are disabled"),
+                dismissButton: .default(Text("OK",
+                                             comment: "OK button of alert dialog when payments are disabled"))
+            )
+        }
     }
-    
+
     var container: some View {
         ZStack {
             ScrollView {
                 content
-                    #if os(macOS)
-                    .frame(maxWidth: 600)
-                    .frame(maxWidth: .infinity)
-                    #endif
+                #if os(macOS)
+                .frame(maxWidth: 600)
+                .frame(maxWidth: .infinity)
+                #endif
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 bottomBar
@@ -92,7 +94,7 @@ struct SmoothieView: View {
             if selectedIngredientID != nil {
                 Rectangle().fill(.regularMaterial).ignoresSafeArea()
             }
-            
+
             ForEach(smoothie.menuIngredients) { measuredIngredient in
                 let presenting = selectedIngredientID == measuredIngredient.id
                 IngredientCard(ingredient: measuredIngredient.ingredient, presenting: presenting, closeAction: deselectIngredient)
@@ -108,18 +110,18 @@ struct SmoothieView: View {
             }
         }
     }
-    
+
     var content: some View {
         VStack(spacing: 0) {
             SmoothieHeaderView(smoothie: smoothie)
-                
+
             VStack(alignment: .leading) {
                 Text("Ingredients.menu",
                      tableName: "Ingredients",
                      comment: "Ingredients in a smoothie. For languages that have different words for \"Ingredient\" based on semantic context.")
                     .font(Font.title).bold()
                     .foregroundStyle(.secondary)
-                
+
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 16, alignment: .top)], alignment: .center, spacing: 16) {
                     ForEach(smoothie.menuIngredients) { measuredIngredient in
                         let ingredient = measuredIngredient.ingredient
@@ -144,7 +146,7 @@ struct SmoothieView: View {
             .padding()
         }
     }
-    
+
     var bottomBar: some View {
         VStack(spacing: 0) {
             Divider()
@@ -160,7 +162,7 @@ struct SmoothieView: View {
         }
         .background(.bar)
     }
-    
+
     func orderSmoothie() {
         guard model.isApplePayEnabled else {
             presentingSecurityAlert = true
@@ -169,19 +171,19 @@ struct SmoothieView: View {
         model.orderSmoothie(smoothie)
         presentingOrderPlacedSheet = true
     }
-    
+
     func redeemSmoothie() {
         model.redeemSmoothie(smoothie)
         presentingOrderPlacedSheet = true
     }
-    
+
     func select(ingredient: Ingredient) {
         topmostIngredientID = ingredient.id
         withAnimation(.openCard) {
             selectedIngredientID = ingredient.id
         }
     }
-    
+
     func deselectIngredient() {
         withAnimation(.closeCard) {
             selectedIngredientID = nil
@@ -195,7 +197,7 @@ struct SmoothieView_Previews: PreviewProvider {
             NavigationView {
                 SmoothieView(smoothie: .berryBlue)
             }
-            
+
             ForEach([Smoothie.thatsBerryBananas, .oneInAMelon, .berryBlue]) { smoothie in
                 SmoothieView(smoothie: smoothie)
                     .previewLayout(.sizeThatFits)
